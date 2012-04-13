@@ -5,18 +5,18 @@ Project focus is storing / tracking changes in textual data. System should be
 content editor, not permanent storage.System just provides service for 
 collaborative editing of certain content.
 
- 1. Open session with initial document to edit 
- 2. Allow people to join session (with same key or something like that?)
- 3. After editing is done: get result and close session
+1. Open session with initial document to edit 
+2. Allow people to join session (with same key or something like that?)
+3. After editing is done: get result and close session
  
 TODO:
- * open session + init data/ check if session is open
- * sending patches to certain session
- * Authentication things (should be decided how...)
- * Store data to Redis during editing to prevent loosing 
-   all sessions if server crashes
- * Revision history during session if something went wrong. 
-   (show history / select where to reset)
+* open session + init data/ check if session is open
+* sending patches to certain session
+* Authentication things (should be decided how...)
+* Store data to Redis during editing to prevent loosing 
+  all sessions if server crashes
+* Revision history during session if something went wrong. 
+  (show history / select where to reset)
 
 ### Some areas where to improve current system
 
