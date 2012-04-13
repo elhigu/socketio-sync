@@ -18,9 +18,9 @@ TODO:
  * Revision history during session if something went wrong. 
    (show history / select where to reset)
 
-## Some areas where to improve current system:
+### Some areas where to improve current system
 
-### Conflict detection and preventing bad client from trashing document
+#### Conflict detection and preventing bad client from trashing document
 
 * Serverside sanity check for changeset
 * e.g. CKEditor integration could validate that changed data passes ckeditor 
@@ -32,7 +32,7 @@ TODO:
   conflict notification and they can disconnect or reload document from server
   (document state out of sync)
 
-### Caret position preserving
+#### Caret position preserving
 
 * Currently in textarea caret position is stored before applying patch and 
   restored after (position is absolute from start of text area). Better would 
