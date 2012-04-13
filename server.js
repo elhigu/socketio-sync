@@ -1,27 +1,56 @@
 var fs = require('fs');
 
-var https = require('https');
-var privateKey = fs.readFileSync('ssl/keys/server.key').toString();
-var certificate = fs.readFileSync('ssl/certs/server.crt').toString();
-var ca = fs.readFileSync('ssl/ca/ca.crt').toString();
-
 var jsp = require("uglify-js").parser;
 var pro = require("uglify-js").uglify;
 var diff_match_patch = require('diff_match_patch');
 var dmp = new (require('diff_match_patch').diff_match_patch)(); 
 var express = require('express');
+
+/* SSL config
+var https = require('https');
+var privateKey = fs.readFileSync('ssl/keys/server.key').toString();
+var certificate = fs.readFileSync('ssl/certs/server.crt').toString();
+var ca = fs.readFileSync('ssl/ca/ca.crt').toString();
 var app = express.createServer({key:privateKey,cert:certificate,ca:ca });
 var io = require('socket.io').listen(app, {key:privateKey,cert:certificate,ca:ca});
+*/
+
+var app = express.createServer();
+var io = require('socket.io').listen(app);
+
+io.configure(function(){
+	io.enable('browser client minification');  // send minified client
+	io.enable('browser client etag');          // apply etag caching logic based on version number
+	io.enable('browser client gzip');          // gzip the file
+	io.set('log level', 1);                    // reduce logging
+	io.set('transports', [
+  		'htmlfile'
+  		, 'xhr-polling'
+		, 'jsonp-polling'
+	]);
+/*
+  io.set('transports', [
+    'websocket'
+  , 'flashsocket'
+  , 'htmlfile'
+  , 'xhr-polling'
+  , 'jsonp-polling'
+  ]);
+*/
+});
 
 app.use(express.static(__dirname + '/public'));
-app.listen(5001);
+
+var port = process.env.PORT || 3000;
+app.listen(port, function() {
+  console.log("Listening on " + port);
+});
 
 app.get('/', function (req, res) {
 	res.redirect('/index.html');
 });
 
 app.get('/main.js', function (req, res) {
-	// Minify and send to prevent stealing for now and to amaze!.
 	var orig_code= fs.readFileSync(__dirname + '/main.js').toString();
 	var ast = jsp.parse(orig_code);
 	ast = pro.ast_mangle(ast);
@@ -39,7 +68,6 @@ var current_viewers = {};
 var rev = 0;
 
 function is_patch_ok(patch) {
-	console.log(patch);
 	for (var result in patch[1]) {
 		if (!result) {
 			return false;
@@ -47,6 +75,8 @@ function is_patch_ok(patch) {
 	}
 	return true;
 }
+
+// TODO: some validator to do sanity check for client data.. e.g. if big parts of document is changed ask confirmation
 
 io.sockets.on('connection', function (socket) {
 	var address = socket.handshake.address;
@@ -60,21 +90,24 @@ io.sockets.on('connection', function (socket) {
 	 * Got patch... apply and broadcast to everyone.
 	 */
 	socket.on('patch', function (text_diff) {
+		var start = new Date().getTime();
 		var diffs = dmp.patch_fromText(text_diff);
 		var old_text = official_doc;
 		var patch = dmp.patch_apply(diffs, old_text);
-				
+		
 		// check if patch can be applied and if so update official version 
 		if (is_patch_ok(patch)) {
 			rev += 1;
 			official_doc = patch[0];
-			console.log(official_doc);
+			console.log(text_diff);
 			socket.broadcast.emit('patch', { data: text_diff, rev: rev });
 			socket.emit('success', { data: text_diff, rev: rev });
 		} else {
 			// emit to sender that they had conflict so that they can restore their doc
 			socket.emit('conflict', {});
 		}
+		var total = new Date().getTime() - start;
+		console.log("Time: " + total + "ms");
 	});
 	
 	socket.on('disconnect', function () {

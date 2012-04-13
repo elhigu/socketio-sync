@@ -39,7 +39,7 @@ For licensing, see LICENSE.html or http://ckeditor.com/license
 				
 				/**
 				 * Offset to node. 
-				 * NOTE: there must be easier way to get/set text offset to node..
+				 * TODO: there must be easier way to get/set text offset to node..
 				 */
 				function position_to_node(node) {
 					var curr = node;
@@ -95,6 +95,11 @@ For licensing, see LICENSE.html or http://ckeditor.com/license
 					return [start,end]
 				}
 				
+				/**
+				 * Synchronize content with server... retain caret position with absolute offsets
+				 * to text.. if caret should move back/forward according to diffs, then position
+				 * probably must be set according to raw content
+				 */
 				var sync = new SynchronizeContent('/', {
 					interval: 500,
 					content : function () {
@@ -118,52 +123,45 @@ For licensing, see LICENSE.html or http://ckeditor.com/license
 						editor.getSelection().selectRanges(ranges);
 					},
 					on_update: function (rev, doc) {
+						$('#rev_info').html(rev);
 						$('#server_side').html(doc);
 					},
 					on_who: function (connections) {
-						//$('#connected_clients').html(connections.join('</br>'));
+						$('#connected_clients').html(connections.join(', '));
 					}
 				});	
 			}
-			
 			$('.jquery_ckeditor').ckeditor(init, config);
 		});
 	</script>
 </head>
+
 <body>
 	<h1 class="samples">
 		Sync CKEditor &mdash; Using jQuery Adapter
 	</h1>
-
-	<!-- This <div> holds alert messages to be display in the sample page. -->
-	<div id="alerts">
-		<noscript>
-			<p>
-				<strong>CKEditor requires JavaScript to run</strong>. In a browser with no JavaScript
-				support, like yours, you should still see the contents (HTML data) and you should
-				be able to edit it normally, without a rich editor interface.
-			</p>
-		</noscript>
-	</div>
-	<!-- This <fieldset> holds the HTML that you will usually find in your
-	     pages. -->
+	<p>
+		This example shows how synchronization framework can be integrated with CKEditor. Integration 
+		is currently far from perfect. Handling caret position should be addressed so that it can be 
+		done for all platforms. Maybe requires some metadata passing to server side e.g. to be able to
+		show carets / selections of multiple editors.
+	</p>
 	<p>
 		<label for="editor1">
 			Local:</label>
-		<textarea class="jquery_ckeditor" cols="80" id="editor1" name="editor1" rows="10"></textarea>
+		<textarea class="jquery_ckeditor" cols="80" id="editor1" name="editor1" rows="10">Initializing... waaait it... long polling takes some time...</textarea>
 	</p>
 	<label for="editor1">
-		Sync from server side:</label>
+		Connected users:</label>
+	<div id="connected_clients" class="description">
+	</div>
+	<label for="editor1">
+		Sync from server side rev. <span id="rev_info"></span>:</label>
 	<div id="server_side" class="description">
 	</div>
 	<div id="footer">
 		<hr />
 		<p>
-			CKEditor - The text editor for the Internet - <a class="samples" href="http://ckeditor.com/">http://ckeditor.com</a>
-		</p>
-		<p id="copy">
-			Copyright &copy; 2003-2011, <a class="samples" href="http://cksource.com/">CKSource</a> - Frederico
-			Knabben. All rights reserved.
 		</p>
 	</div>
 </body>

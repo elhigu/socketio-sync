@@ -1,11 +1,10 @@
 {
-    "name": "node-sync"
-  , "version": "0.0.1"
-  , "private": true
-  , "dependencies": {
-      "express": "2.5.8"
-    , "socket.io" : ""
-    , "uglify-js" : ""
-    , "diff_match_patch" : ""
+  "name": "nodesync",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "2.2.0"
+   	,"socket.io": "0.9"
+   	,"diff_match_patch": ""
+   	,"uglify-js": ""
   }
 }

@@ -83,64 +83,79 @@ function Validator () {
 /**
  * Class to monitor certain element with value and keep it in sync with serverside content.
  *
- * NOTE: There is hack to provide consistent way to access instance variables of this class from events hendlers 
- *       and normal methods. Just use self.
- *
  * TODO: status callbacks e.g. conflict, resync,  ready
+ *
  * TODO: interval should probably depend on connection style, or to allos give callback if editor 
  *       wants to send edit event by itself
  * 
- * TODO: official doc and patch queue. Keep up doc sync with server separately, which can be used to 
+ * TODO: official doc and patch queue. Keep up doc sync with server separately, which can be used to
+ *
+ * TODO: Allow delivering connected user specific metadata. And strategy how to apply patches to 
+ * metadata so that e.g. selections etc. will be correctly transformed.
  */
 function SynchronizeContent (content_url, options) {
 	var dmp = new diff_match_patch();
-	
-	// TODO: use private variables
-	this.interval = options['interval'];
-	this.get_content = options['content'];
-	this.set_content = options['set_content'];
-	this.get_caret = options['caret'];
-	this.set_caret = options['set_caret'];
-	this.on_who = options['on_who'];
-	
-	this.patches = new Patcher("", 0, options['on_update']);
-	this.validate = new Validator();
-	
-	// Start monitoring "thread" TODO: add this as callback on content change if wanted..
-	this.diff_thread = this.intervalID = setInterval(
-		(function(self) { return function() {self.checkChanges();} })(this), this.interval);
 
-	this.socket = io.connect(content_url, {secure: true});
+	var start = false;
+	var interval = options['interval'];
+	var get_content = options['content'];
+	var set_content = options['set_content'];
+	var get_caret = options['caret'];
+	var set_caret = options['set_caret'];
+	var on_who = options['on_who'];
+	var patches = new Patcher("", 0, options['on_update']);
+	var validate = new Validator();
+
+	var checkChanges = function () {
+		var self = this;
+		var new_text = get_content();
+		// TODO: validator should probably be called in patcher..
+		if (start && validate.validate(new_text)) {
+			if (typeof new_text != 'string') {
+				// TODO: ifx this to be less visible...
+				alert("Error: content callback should return string!");
+			}
+			var diff = dmp.patch_make(patches.local_doc, new_text);
+			if (diff.length > 0) {
+				socket.emit('patch', dmp.patch_toText(diff));
+				// NOTE: also bad API here...
+				patches.local_doc = new_text;
+			}
+		} else {
+			// TODO: some nicer fix... currently just reset to last stable..
+			set_content(patches.doc);
+		}
+	}
+
+	// Start monitoring "thread" TODO: add this as callback on content change if wanted..
+	var diff_thread = this.intervalID = setInterval(
+		(function(self) { return function() {checkChanges();} })(this), interval);
+
+//	var socket = io.connect(content_url, {secure: true});
+	var socket = io.connect(content_url);
 
 	// make obj visible to it's sockets callbacks and check that location does not have earlier connection created.
-	if (this.socket.parent != undefined) {
+	if (socket.parent != undefined) {
 		console.error("You have defined various sockets to same namespace:" + content_url);		
 	}
-	this.socket.self = this;
 	
-	/**
-	 * 
-	 */
-	this.socket.on('connect', function (socket) {
-		var self = this.self;
+	socket.on('connect', function (socket) {
 		// Maybe set status or something... probably can be asked from socket as well...
 	});
 
 	/**
 	* Read and apply remote patches from content server.
 	*/
-	this.socket.on('patch', function (update) {
-		var self = this.self;
-		
+	socket.on('patch', function (update) {
 		var diff = dmp.patch_fromText(update['data']);
 		var patch_rev = update['rev'];
-		var pending = self.patches.add(patch_rev, diff);
+		var pending = patches.add(patch_rev, diff);
 
 		if (pending == 0) {
-			var caret_pos = self.get_caret();
-			self.patches.local_doc = self.patches.doc;
-			self.set_content(self.patches.doc);
-			self.set_caret(caret_pos[0], caret_pos[1]);
+			var caret_pos = get_caret();
+			patches.local_doc = patches.doc;
+			set_content(patches.doc);
+			set_caret(caret_pos[0], caret_pos[1]);
 			// TODO: for making minify more efficient pass this callback to patcher and store private
 		} else if (pending > 5) {
 			// NOTE: If there are lots of patches pending consider:
@@ -155,18 +170,17 @@ function SynchronizeContent (content_url, options) {
 	/**
 	 * Backend returned your patch with revision info where to put it in official document
 	 */
-	this.socket.on('success', function (update) {
-		var self = this.self;
+	socket.on('success', function (update) {
 		var diff = dmp.patch_fromText(update['data']);
 		var patch_rev = update['rev'];
-		var pending = self.patches.add(patch_rev, diff);
+		var pending = patches.add(patch_rev, diff);
 		// TODO: check pending count that we are ok..
 	});
 
 	/**
 	* Patch sent by you caused conflict in document state.
 	*/
-	this.socket.on('conflict', function () {
+	socket.on('conflict', function () {
 		// TODO: restore rev and document from pathed version
 		alert("Conflict was what you did... your changes were rejected.");
 	});
@@ -174,45 +188,23 @@ function SynchronizeContent (content_url, options) {
 	/**
 	* Complete update was read from server.
 	*/
-	this.socket.on('current', function (update) {
-		var self = this.self;
+	socket.on('current', function (update) {
 		var official_doc = update['data'];
 		var rev = update['rev'];
-		self.patches.set(official_doc, rev);
-		self.set_content(self.patches.doc);
+		patches.set(official_doc, rev);
+		set_content(patches.doc);
+		start = true;
 	});
 
 	/**
 	* Information about connected users was received
 	*/
-	this.socket.on('who', function (viewers) {
-		var self = this.self;
+	socket.on('who', function (viewers) {
 		var connections = [];
 		for (var key in viewers) {
 		    connections.push(key);
 		}
-		self.on_who(connections);
+		on_who(connections);
 	});
-
-	this.checkChanges = function () {
-		var self = this;
-		var new_text = self.get_content();
-		// TODO: validator should probably be called in patcher..
-		if (this.validate.validate(new_text)) {
-			if (typeof new_text != 'string') {
-				// TODO: ifx this to be less visible...
-				alert("Error: content callback should return string!");
-			}
-			var diff = dmp.patch_make(self.patches.local_doc, new_text);
-			if (diff.length > 0) {
-				self.socket.emit('patch', dmp.patch_toText(diff));
-				// NOTE: also bad API here...
-				self.patches.local_doc = new_text;
-			}
-		} else {
-			// TODO: some nicer fix... currently just reset to last stable..
-			self.set_content(self.patches.doc);
-		}
-	}
 }
 
