@@ -1,25 +1,22 @@
 Socketio-sync allows google docs type co-operative editing of textual data 
 which can be integrated to various wysiwyg editors or e.g. simple text area.
 
-My personal reminder to make me remember to keep scope of project small 
-enough.
+Project focus is storing / tracking changes in textual data. System should be
+content editor, not permanent storage.System just provides service for 
+collaborative editing of certain content.
 
-/**
- * Keep focus in storing / tracking changes in textual data. System could be content 
- * editor server that just provides service for collaborative editing of certain content.
- * 
- * 1. Open session with initial document to edit
- * 2. Allow people to join session (with same key or something like that?)
- * 3. After editing is done: close session, get result and use it any way you like...
- * 4. If you like to save during editing, then you can just get result any time you like..
- *
- * TODO:
- * - Write some boilerplate system to utilize editor.. 
- * - Revision history during session if something went wrong. (show history / select where to reset)
- * - Authentication things...
- * - Store data to Redis during editing to prevent loosing 
- *   all sessions if server crashes
- */
+ 1. Open session with initial document to edit 
+ 2. Allow people to join session (with same key or something like that?)
+ 3. After editing is done: get result and close session
+ 
+TODO:
+ - open session + init data/ check if session is open
+ - sending patches to certain session
+ - Authentication things (should be decided how...)
+ - Store data to Redis during editing to prevent loosing 
+   all sessions if server crashes
+ - Revision history during session if something went wrong. 
+   (show history / select where to reset)
 
 Some areas where to improve current system:
 
