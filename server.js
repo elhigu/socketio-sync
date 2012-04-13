@@ -23,12 +23,15 @@ io.configure(function(){
 	io.enable('browser client etag');          // apply etag caching logic based on version number
 	io.enable('browser client gzip');          // gzip the file
 	io.set('log level', 1);                    // reduce logging
-	io.set('transports', [
+
+/* Faster startup if websockets/flashsockets not available,,
+io.set('transports', [
   		'htmlfile'
   		, 'xhr-polling'
 		, 'jsonp-polling'
 	]);
-/*
+*/ 
+
   io.set('transports', [
     'websocket'
   , 'flashsocket'
@@ -36,7 +39,7 @@ io.configure(function(){
   , 'xhr-polling'
   , 'jsonp-polling'
   ]);
-*/
+
 });
 
 app.use(express.static(__dirname + '/public'));
