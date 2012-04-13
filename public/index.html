@@ -1,0 +1,135 @@
+<!-- Load jQuery -->
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+
+<!--script type="text/javascript">
+	google.load("jquery", "1");
+</script-->
+
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/diff_match_patch.js"></script>
+<script src="/main.js"></script>
+
+<!--script src="js/textarea-sync.js"></script-->
+<link rel="stylesheet" href="/css/style.css">
+
+<script>
+
+// This should go to separate jquery plugin module 
+// $('textarea#sync').nodesync('http://localhost:5001/', {});
+
+$.fn.setCursorPosition = function(start, end) {
+	this.each(function(index, elem) {
+		if (elem.setSelectionRange) {
+			elem.setSelectionRange(start, end);
+		} else if (elem.createTextRange) {
+			var range = elem.createTextRange();
+			range.collapse(true);
+			range.moveEnd('character', end);
+			range.moveStart('character', start);
+			range.select();
+		}
+	});
+	return this;
+};
+
+function getCursorPosition(el) {
+	var start = 0, end = 0, normalizedValue, range,
+	textInputRange, len, endRange;
+
+	if (typeof el.selectionStart == "number" && typeof el.selectionEnd == "number") {
+		start = el.selectionStart;
+		end = el.selectionEnd;
+	} else {
+		range = document.selection.createRange();
+
+		if (range && range.parentElement() == el) {
+			len = el.value.length;
+			normalizedValue = el.value.replace(/\r\n/g, "\n");
+
+			// Create a working TextRange that lives only in the input
+			textInputRange = el.createTextRange();
+			textInputRange.moveToBookmark(range.getBookmark());
+
+			// Check if the start and end of the selection are at the very end
+			// of the input, since moveStart/moveEnd doesn't return what we want
+			// in those cases
+			endRange = el.createTextRange();
+			endRange.collapse(false);
+
+			if (textInputRange.compareEndPoints("StartToEnd", endRange) > -1) {
+				start = end = len;
+			} else {
+				start = -textInputRange.moveStart("character", -len);
+				start += normalizedValue.slice(0, start).split("\n").length - 1;
+
+				if (textInputRange.compareEndPoints("EndToEnd", endRange) > -1) {
+					end = len;
+				} else {
+					end = -textInputRange.moveEnd("character", -len);
+					end += normalizedValue.slice(0, end).split("\n").length - 1;
+				}
+			}
+		}
+	}
+
+	return {
+		start: start,
+		end: end
+	};
+}
+
+$(function () {
+	// Create synchronizer...
+	var sync = new SynchronizeContent('/', {
+		interval: 500,
+		content : function () {
+			return $('#document_box').get(0).value;
+		},
+		set_content : function (data) {
+			$('#document_box').get(0).value = data;
+		},
+		caret : function () {
+			var pos = getCursorPosition($('#document_box').get(0));
+			return [pos.start, pos.end];
+		},
+		set_caret : function (start, end) {
+			$('#document_box').setCursorPosition(start, end);
+		},
+		on_update: function (rev, doc) {
+			$('#rev_info .value').html(rev);
+			$('#server_side_text .box').html('<pre>' + doc  + '</pre>');
+		},
+		on_who: function (connections) {
+			$('#connected_clients').html(connections.join('</br>'));
+		}
+	});
+});
+
+</script>
+
+<div id="top">
+	<a href="http://localhost:5001/ckeditor.html">Click here to see double cool example!</a>
+	<a href="http://localhost:5001/tinymce/examples/index.html">Click here to see double cool example!</a>
+</div>
+<div class="col">
+	<label>Connected clients:</label>
+	<div id="connected_clients" class="box"></div>
+	<div id="rev_info">
+		<label>Rev:</label>
+		<div class="value"></div>
+	</div>
+</div>
+<div class="col">
+	<label>Your edit:</label>
+	<div>
+		<textarea rows="30" cols="50" id="document_box"></textarea>
+	</div>
+</div>
+<div class="col">
+	<div id="server_side_text">
+		<label>Server side text:</label>
+		<div class="box"></div>
+	</div>
+</div>
+
