@@ -1,3 +1,14 @@
+/**
+ * Keep focus in storing / tracking changes in textual data. System could be content 
+ * editor server that just provides service for collaborative editing of certain content.
+ * 
+ * 1. Open session with initial document to edit
+ * 2. Allow people to join session (with same key or something like that?)
+ * 3. After editing is done: close session, get result and use it any way you like...
+ * 4. If you like to save during editing, then you can just get result any time you like..
+ *
+ */
+
 var fs = require('fs');
 
 var jsp = require("uglify-js").parser;
