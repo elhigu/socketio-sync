@@ -20,6 +20,8 @@ TODO:
 
 ### Some areas where to improve current system
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/elhigu/socketio-sync.svg)](https://greenkeeper.io/)
+
 #### Conflict detection and preventing bad client from trashing document
 
 * Serverside sanity check for changeset
