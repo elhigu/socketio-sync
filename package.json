@@ -2,8 +2,8 @@
   "name": "nodesync",
   "version": "0.0.1",
   "dependencies": {
-    "express": "2"
-   	,"socket.io": "0.9"
+    "express": "^4.14.1"
+   	,"socket.io": "~1.7.2"
    	,"diff_match_patch": ""
    	,"uglify-js": ""
   }
